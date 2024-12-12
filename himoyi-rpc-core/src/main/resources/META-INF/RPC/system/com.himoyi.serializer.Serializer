@@ -1,0 +1,4 @@
+hessian=com.himoyi.serializer.HessianSerializer
+json=com.himoyi.serializer.JsonSerializer
+jdk=com.himoyi.serializer.JdkSerializer
+kryo=com.himoyi.serializer.KryoSerializer
