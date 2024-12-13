@@ -31,7 +31,7 @@ public class HttpServerHandler implements Handler<HttpServerRequest> {
     @Override
     public void handle(HttpServerRequest request) {
         // 初始化序列化器
-        System.out.println(RpcApplication.getRpcConfig().getSerializer());
+//        System.out.println(RpcApplication.getRpcConfig().getSerializer());
         final Serializer serializer = SerializerFactory.getInstance(RpcApplication.getRpcConfig().getSerializer());
 //        final Serializer serializer = new JdkSerializer();
         // 打印日志

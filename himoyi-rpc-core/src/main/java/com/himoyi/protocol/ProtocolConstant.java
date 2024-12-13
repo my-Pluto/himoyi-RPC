@@ -1,6 +1,6 @@
 package com.himoyi.protocol;
 
-public interface protocolConstant {
+public interface ProtocolConstant {
 
     /**
      * 消息头长度

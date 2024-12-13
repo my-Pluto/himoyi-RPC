@@ -9,7 +9,7 @@ import com.himoyi.model.ServiceMetaInfo;
 import com.himoyi.registry.LocalRegistry;
 import com.himoyi.registry.Registry;
 import com.himoyi.registry.RegistryFactory;
-import com.himoyi.server.HttpServer;
+import com.himoyi.server.Server;
 import com.himoyi.server.VertxHttpServer;
 
 public class ProviderExample {
@@ -36,7 +36,7 @@ public class ProviderExample {
         }
 
         // 启动 web 服务
-        HttpServer httpServer = new VertxHttpServer();
-        httpServer.startHttpServer(RpcApplication.getRpcConfig().getServerPort());
+        Server server = new VertxHttpServer();
+        server.startServer(RpcApplication.getRpcConfig().getServerPort());
     }
 }
