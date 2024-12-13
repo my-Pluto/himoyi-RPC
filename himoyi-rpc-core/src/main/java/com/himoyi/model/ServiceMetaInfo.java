@@ -53,7 +53,7 @@ public class ServiceMetaInfo implements Serializable {
      * @return
      */
     public String getServiceNodeKey() {
-        return String.format("%s:%s:%s", getServiceKey(), getServiceHost(), getServicePort());
+        return String.format("%s/%s:%s", getServiceKey(), getServiceHost(), getServicePort());
     }
 
     /**

@@ -38,16 +38,17 @@ public class VertxTcpServer implements Server {
         // 数据的异步处理逻辑
         netServer.connectHandler(socket -> {
             // 处理链接
-            socket.handler(buffer -> {
-
-                // 接收收到的请求数据
-                byte[] requestData = buffer.getBytes();
-
-                // 处理请求，构造响应数据
-                byte[] responseData = handleRequest(requestData);
-                // 发送响应
-                socket.write(Buffer.buffer(responseData));
-            });
+            new TcpServerHandler().handle(socket);
+//            socket.handler(buffer -> {
+//
+//                // 接收收到的请求数据
+//                byte[] requestData = buffer.getBytes();
+//
+//                // 处理请求，构造响应数据
+//                byte[] responseData = handleRequest(requestData);
+//                // 发送响应
+//                socket.write(Buffer.buffer(responseData));
+//            });
         });
 
         // 启动TCP服务器并监听指定接口

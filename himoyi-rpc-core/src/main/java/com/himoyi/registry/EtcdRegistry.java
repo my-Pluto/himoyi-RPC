@@ -176,8 +176,8 @@ public class EtcdRegistry implements Registry {
                             cache.clearCache(serviceKey);
                         }
                         case PUT -> {
-                            cache.clearCache(serviceKey);
-                            serviceDiscovery(serviceKey);
+//                            cache.clearCache(serviceKey);
+//                            serviceDiscovery(serviceKey);
                         }
                         default -> {
                         }

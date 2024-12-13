@@ -11,6 +11,7 @@ import com.himoyi.registry.Registry;
 import com.himoyi.registry.RegistryFactory;
 import com.himoyi.server.Server;
 import com.himoyi.server.VertxHttpServer;
+import com.himoyi.server.tcp.VertxTcpServer;
 
 public class ProviderExample {
     public static void main(String[] args) {
@@ -36,7 +37,7 @@ public class ProviderExample {
         }
 
         // 启动 web 服务
-        Server server = new VertxHttpServer();
+        Server server = new VertxTcpServer();
         server.startServer(RpcApplication.getRpcConfig().getServerPort());
     }
 }

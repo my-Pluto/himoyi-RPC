@@ -23,8 +23,8 @@ public class TcpServerHandler implements Handler<NetSocket> {
     @Override
     public void handle(NetSocket netSocket) {
 
-        // 收到请求后进行处理
-        netSocket.handler(buffer -> {
+        // 构造Wrapper，实现对半包、粘包的处理
+        TcpBufferHandlerWrapper bufferHandlerWrapper = new TcpBufferHandlerWrapper(buffer -> {
             ProtocolMessage<RpcRequest> protocolMessage;
 
             try {
@@ -51,7 +51,11 @@ public class TcpServerHandler implements Handler<NetSocket> {
                 throw new RuntimeException("编码错误", e);
             }
         });
+
+        // 收到请求后进行处理
+        netSocket.handler(bufferHandlerWrapper);
     }
+
 
     /**
      * 执行远程调用
