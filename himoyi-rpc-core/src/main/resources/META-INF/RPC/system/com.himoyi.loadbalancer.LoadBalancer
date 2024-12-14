@@ -1,0 +1,3 @@
+random=com.himoyi.loadbalancer.RandomLoadBalancer
+round-robin=com.himoyi.loadbalancer.RoundRobinLoadBalancer
+consistent-hash=com.himoyi.loadbalancer.ConsistentHashLoadBalancer

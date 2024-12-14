@@ -6,8 +6,10 @@ import cn.hutool.core.util.IdUtil;
 import cn.hutool.core.util.ObjectUtil;
 import cn.hutool.http.HttpRequest;
 import cn.hutool.http.HttpResponse;
+import com.himoyi.Config.RpcConfig;
 import com.himoyi.RpcApplication;
 import com.himoyi.constant.RpcConstant;
+import com.himoyi.loadbalancer.LoadBalancerFactory;
 import com.himoyi.model.RpcRequest;
 import com.himoyi.model.RpcResponse;
 import com.himoyi.model.ServiceMetaInfo;
@@ -29,7 +31,9 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
@@ -55,6 +59,8 @@ public class ServiceProxy implements InvocationHandler {
         try {
             // 从注册中心获取服务信息
             ServiceMetaInfo serviceMetaInfo = getServiceMetaInfo(method.getDeclaringClass().getName());
+
+            System.out.println(serviceMetaInfo.getServiceAddress());
 
             // 发送请求，返回结果
             return VertxTCPClient.doRequest(serviceMetaInfo, rpcRequest);
@@ -82,8 +88,13 @@ public class ServiceProxy implements InvocationHandler {
             throw new RuntimeException("暂无服务地址");
         }
 
-        // todo 暂时返回第一个，之后需要实现轮询
-        return serviceMetaInfos.get(0);
+        // 构造参数map，使用负载均衡器选择一个服务地址
+        // 如果调用同一个方法，请求的地址一定是同一个
+        Map<String, Object> map = new HashMap<>();
+        map.put("serviceName", serviceName);
+        // 为了避免所有请求落到同一个服务器，添加一个随机数
+        map.put("UUID", IdUtil.simpleUUID());
+        return LoadBalancerFactory.getLoadBalancer(RpcApplication.getRpcConfig().getLoadBalancer()).select(map, serviceMetaInfos);
     }
 
 

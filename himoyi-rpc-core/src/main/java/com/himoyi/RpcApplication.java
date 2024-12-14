@@ -32,6 +32,7 @@ public class RpcApplication {
 
     /**
      * 初始化注册中心
+     *
      * @param registryConfig 注册中心配置文件
      */
     private static void registryInit(RegistryConfig registryConfig) {
