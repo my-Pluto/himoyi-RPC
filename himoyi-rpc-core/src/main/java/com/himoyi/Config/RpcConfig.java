@@ -1,6 +1,7 @@
 package com.himoyi.Config;
 
 import com.himoyi.fault.retry.RetryStrategyKeys;
+import com.himoyi.fault.tolerant.TolerantStrategyKeys;
 import com.himoyi.loadbalancer.LoadBalancerKeys;
 import com.himoyi.serializer.SerializerKeys;
 import lombok.Data;
@@ -60,4 +61,9 @@ public class RpcConfig {
      * 重试次数
      */
     private int retryAttemptNumber = 5;
+
+    /**
+     * 容错策略
+     */
+    private String failTolerantStrategy = TolerantStrategyKeys.FAIL_FAST;
 }

@@ -11,6 +11,8 @@ import com.himoyi.RpcApplication;
 import com.himoyi.constant.RpcConstant;
 import com.himoyi.fault.retry.RetryStrategy;
 import com.himoyi.fault.retry.RetryStrategyFactory;
+import com.himoyi.fault.tolerant.TolerantStrategy;
+import com.himoyi.fault.tolerant.TolerantStrategyFactory;
 import com.himoyi.loadbalancer.LoadBalancerFactory;
 import com.himoyi.model.RpcRequest;
 import com.himoyi.model.RpcResponse;
@@ -51,7 +53,7 @@ public class ServiceProxy implements InvocationHandler {
 
     @Override
     public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
-
+        Object result = null;
         // 构造请求
         RpcRequest rpcRequest = RpcRequest.builder()
                 .serviceName(method.getDeclaringClass().getName())
@@ -83,14 +85,17 @@ public class ServiceProxy implements InvocationHandler {
              *     }
              * });
              */
-            return retryStrategy.doRetry(() -> VertxTCPClient.doRequest(serviceMetaInfo, rpcRequest));
+            result = retryStrategy.doRetry(() -> VertxTCPClient.doRequest(serviceMetaInfo, rpcRequest));
 
 
         } catch (Exception e) {
-            log.error("调用失败！");
-            throw new RuntimeException("调用失败！", e);
+//            log.error("调用失败！");
+//            throw new RuntimeException("调用失败！", e);
+            TolerantStrategy tolerantStrategy = TolerantStrategyFactory.getTolerantStrategy(RpcApplication.getRpcConfig().getFailTolerantStrategy());
+            tolerantStrategy.doTolerant(null, e);
         }
 
+        return result;
     }
 
     /**

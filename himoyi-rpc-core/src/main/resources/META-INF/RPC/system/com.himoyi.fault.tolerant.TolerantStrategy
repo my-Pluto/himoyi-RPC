@@ -1,0 +1,4 @@
+failFast=com.himoyi.fault.tolerant.FailFastTolerantStrategy
+failSafe=com.himoyi.fault.tolerant.FailSafeTolerantStrategy
+failOver=com.himoyi.fault.tolerant.FailOverTolerantStrategy
+failBack=com.himoyi.fault.tolerant.FailBackTolerantStrategy
