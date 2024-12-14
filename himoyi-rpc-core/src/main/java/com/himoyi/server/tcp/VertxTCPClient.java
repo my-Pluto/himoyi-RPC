@@ -52,6 +52,7 @@ public class VertxTCPClient {
                 // 处理响应
                 getResponse(netSocket, responseFuture);
 
+
             } else {
                 System.out.println("Failed to connect to " + serviceMetaInfo.getServiceHost() + ":" + serviceMetaInfo.getServicePort());
             }

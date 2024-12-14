@@ -9,6 +9,8 @@ import cn.hutool.http.HttpResponse;
 import com.himoyi.Config.RpcConfig;
 import com.himoyi.RpcApplication;
 import com.himoyi.constant.RpcConstant;
+import com.himoyi.fault.retry.RetryStrategy;
+import com.himoyi.fault.retry.RetryStrategyFactory;
 import com.himoyi.loadbalancer.LoadBalancerFactory;
 import com.himoyi.model.RpcRequest;
 import com.himoyi.model.RpcResponse;
@@ -25,6 +27,7 @@ import io.vertx.core.buffer.Buffer;
 import io.vertx.core.net.NetClient;
 import io.vertx.core.net.NetSocket;
 import lombok.extern.slf4j.Slf4j;
+import org.checkerframework.checker.units.qual.C;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -35,6 +38,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 
@@ -60,16 +64,33 @@ public class ServiceProxy implements InvocationHandler {
             // 从注册中心获取服务信息
             ServiceMetaInfo serviceMetaInfo = getServiceMetaInfo(method.getDeclaringClass().getName());
 
-            System.out.println(serviceMetaInfo.getServiceAddress());
+            RetryStrategy retryStrategy = RetryStrategyFactory.getRetryStrategy(RpcApplication.getRpcConfig().getRetryStrategy());
 
-            // 发送请求，返回结果
-            return VertxTCPClient.doRequest(serviceMetaInfo, rpcRequest);
+            /*
+             * Callable是一个函数式接口.
+             * ()：表示这个lambda表达式不接受任何参数，匹配Callable接口的call()方法签名。
+             * ->：lambda表达式的箭头操作符，左边是参数列表（这里为空），右边是lambda表达式的实现。
+             * (RpcResponse) VertxTCPClient.doRequest(serviceMetaInfo, rpcRequest)：这是lambda表达式的实现部分，它调用了VertxTCPClient.doRequest方法，并将结果转换为RpcResponse类型
+             * Java编译器可以根据上下文推断出lambda表达式应该实现的接口类型。在这里，retryStrategy.doRetry方法期望一个Callable<RpcResponse>，因此编译器知道lambda表达式应该实现Callable接口的call()方法
+             *
+             *
+             * 展开写的话：
+             * RpcResponse response = retryStrategy.doRetry(new Callable<RpcResponse>() {
+             *     @Override
+             *     public RpcResponse call() throws Exception {
+             *         // 发送请求，返回结果
+             *         return (RpcResponse) VertxTCPClient.doRequest(serviceMetaInfo, rpcRequest);
+             *     }
+             * });
+             */
+            return retryStrategy.doRetry(() -> VertxTCPClient.doRequest(serviceMetaInfo, rpcRequest));
+
 
         } catch (Exception e) {
-            e.printStackTrace();
+            log.error("调用失败！");
+            throw new RuntimeException("调用失败！", e);
         }
 
-        return null;
     }
 
     /**

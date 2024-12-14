@@ -1,5 +1,6 @@
 package com.himoyi.Config;
 
+import com.himoyi.fault.retry.RetryStrategyKeys;
 import com.himoyi.loadbalancer.LoadBalancerKeys;
 import com.himoyi.serializer.SerializerKeys;
 import lombok.Data;
@@ -49,4 +50,14 @@ public class RpcConfig {
      * 负载均衡器类型
      */
     private String loadBalancer = LoadBalancerKeys.CONSISTENT_HASH;
+
+    /**
+     * 重试策略
+     */
+    private String retryStrategy = RetryStrategyKeys.FIXED_RETRY;
+
+    /**
+     * 重试次数
+     */
+    private int retryAttemptNumber = 5;
 }

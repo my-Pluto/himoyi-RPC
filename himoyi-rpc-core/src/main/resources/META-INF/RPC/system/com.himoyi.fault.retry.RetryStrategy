@@ -1,0 +1,2 @@
+noRetry=com.himoyi.fault.retry.NoRetryStrategy
+fixedRetry=com.himoyi.fault.retry.FixedIntervalRetryStrategy

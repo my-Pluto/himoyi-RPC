@@ -45,9 +45,7 @@ public class SPILoader {
      */
     public static void loadAll() {
         log.info("加载所有 SPI");
-        LOAD_CLASS_LIST.forEach(e -> {
-            load(e);
-        });
+        LOAD_CLASS_LIST.forEach(SPILoader::load);
     }
 
     /**

@@ -8,7 +8,7 @@ import com.himoyi.proxy.ServiceProxyFactory;
 
 public class EasyConsumerExample {
     public static void main(String[] args) throws InterruptedException {
-        for (int i = 0; i < 10; i++) {
+        for (int i = 0; i < 1; i++) {
             UserService userService = ServiceProxyFactory.getProxy(UserService.class);
             User user = new User();
             user.setUserName("himoyi");
