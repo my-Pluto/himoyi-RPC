@@ -8,6 +8,7 @@ import lombok.extern.slf4j.Slf4j;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
+import java.lang.reflect.InvocationTargetException;
 import java.net.URL;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -50,6 +51,7 @@ public class SPILoader {
 
     /**
      * 加载指定类型的 SPI
+     *
      * @param clazz
      * @return
      */
@@ -89,14 +91,17 @@ public class SPILoader {
         // 保存加载结果
         loaderMap.put(clazz.getName(), keyClassMap);
         return keyClassMap;
-    };
+    }
+
+    ;
 
     /**
      * 获取某个接口的实例
+     *
      * @param clazz
      * @param key
-     * @return
      * @param <T>
+     * @return
      */
     public static <T> T getInstance(Class<T> clazz, String key) {
 
@@ -128,5 +133,36 @@ public class SPILoader {
         }
 
         return (T) hasLoaderMap.get(name);
+    }
+
+    /**
+     * 获取指定类的class信息
+     *
+     * @param clazz
+     * @param key
+     * @param <T>
+     * @return
+     */
+    public static <T> T getNewInstance(Class<T> clazz, String key, Class[] paramaterTypes, Object[] params) {
+        // 获得指定接口的所有实现类
+        String className = clazz.getName();
+        Map<String, Class<?>> keyClassMap = loaderMap.get(className);
+
+        // 如果不存在该接口，证明它未实现SPI
+        if (ObjectUtil.isNull(keyClassMap)) {
+            throw new RuntimeException(String.format("SPILoader 未加载 %s 类型", className));
+        }
+
+        // 如果map中不存在key，证明该实现类不存在
+        if (!keyClassMap.containsKey(key)) {
+            throw new RuntimeException(String.format("SpiLoader 的 %s 不存在 key=%s 的类型", className, key));
+        }
+
+        // 获取实现类的class信息
+        try {
+            return (T) keyClassMap.get(key).getDeclaredConstructor(paramaterTypes).newInstance(params);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
     }
 }

@@ -3,6 +3,7 @@ package com.himoyi.Config;
 import com.himoyi.fault.retry.RetryStrategyKeys;
 import com.himoyi.fault.tolerant.TolerantStrategyKeys;
 import com.himoyi.loadbalancer.LoadBalancerKeys;
+import com.himoyi.rateLimit.RateLimitKeys;
 import com.himoyi.serializer.SerializerKeys;
 import lombok.Data;
 
@@ -66,4 +67,19 @@ public class RpcConfig {
      * 容错策略
      */
     private String failTolerantStrategy = TolerantStrategyKeys.FAIL_FAST;
+
+    /**
+     * 限流策略
+     */
+    private String RATE_LIMIT_STRATEGY = RateLimitKeys.NO_RATE_LIMIT;
+
+    /**
+     * Guava限流策略，每秒生成令牌的数量
+     */
+    private int GUAVA_TOKEN_CREATE_ONE_SECOND = 1;
+
+    /**
+     * 预热时间
+     */
+    private int GUAVA_PRE_HOT_TIME = 3;
 }

@@ -1,0 +1,3 @@
+token_bucket_rate_limit=com.himoyi.rateLimit.TokenBucketRateLimit
+guava_token_bucket_rate_limit=com.himoyi.rateLimit.GuavaTokenBucketRateLimit
+no_rate_limit=com.himoyi.rateLimit.NoRateLimit

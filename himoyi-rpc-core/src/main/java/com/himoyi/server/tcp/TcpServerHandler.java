@@ -6,6 +6,7 @@ import com.himoyi.protocol.ProtocolMessage;
 import com.himoyi.protocol.ProtocolMessageDecoder;
 import com.himoyi.protocol.ProtocolMessageEncoder;
 import com.himoyi.protocol.ProtocolMessageTypeEnum;
+import com.himoyi.rateLimit.RateLimitCenter;
 import com.himoyi.registry.LocalRegistry;
 import io.vertx.core.Handler;
 import io.vertx.core.buffer.Buffer;
@@ -35,8 +36,17 @@ public class TcpServerHandler implements Handler<NetSocket> {
                 throw new RuntimeException("消息解码错误！");
             }
 
+            RpcRequest rpcRequest = protocolMessage.getData();
+
+            // 检查限流策略，如果无法获取token，则证明被限流，直接抛出异常
+            boolean token = RateLimitCenter.getRateLimiter(rpcRequest.getServiceName() + ":" + rpcRequest.getMethodName()).getToken();
+            if (!token) {
+                log.info("获取Token失败，调用过程被限流！");
+                throw new RuntimeException("获取Token失败，调用过程被限流！");
+            }
+
             // 执行请求的方法
-            RpcResponse response = invokeMethod(protocolMessage.getData());
+            RpcResponse response = invokeMethod(rpcRequest);
 
             // 构造返回消息
             ProtocolMessage<RpcResponse> responseMessage = createResponse(protocolMessage, response);
