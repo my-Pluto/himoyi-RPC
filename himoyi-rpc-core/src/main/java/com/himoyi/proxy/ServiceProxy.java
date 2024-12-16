@@ -8,6 +8,8 @@ import cn.hutool.http.HttpRequest;
 import cn.hutool.http.HttpResponse;
 import com.himoyi.Config.RpcConfig;
 import com.himoyi.RpcApplication;
+import com.himoyi.circuitBreaker.CircuitBreaker;
+import com.himoyi.circuitBreaker.CircuitBreakerCenter;
 import com.himoyi.constant.RpcConstant;
 import com.himoyi.fault.retry.RetryStrategy;
 import com.himoyi.fault.retry.RetryStrategyFactory;
@@ -62,6 +64,12 @@ public class ServiceProxy implements InvocationHandler {
                 .parameters(args)
                 .build();
 
+        if (RpcApplication.getRpcConfig().isOpenCircuitBreaker()) {
+            if (!CircuitBreakerCenter.getCircuitBreaker(rpcRequest.getServiceName() + ":" + rpcRequest.getMethodName()).allowRequest()) {
+                throw new RuntimeException("服务被熔断！");
+            }
+        }
+
         try {
             // 从注册中心获取服务信息
             ServiceMetaInfo serviceMetaInfo = getServiceMetaInfo(method.getDeclaringClass().getName());
@@ -91,10 +99,23 @@ public class ServiceProxy implements InvocationHandler {
         } catch (Exception e) {
 //            log.error("调用失败！");
 //            throw new RuntimeException("调用失败！", e);
+
+            // 如果开启了熔断机制，记录失败
+            if (RpcApplication.getRpcConfig().isOpenCircuitBreaker()) {
+                CircuitBreaker circuitBreaker = CircuitBreakerCenter.getCircuitBreaker(rpcRequest.getServiceName() + ":" + rpcRequest.getMethodName());
+                circuitBreaker.recordFailureCount();
+            }
+
+            // 进行容错处理
             TolerantStrategy tolerantStrategy = TolerantStrategyFactory.getTolerantStrategy(RpcApplication.getRpcConfig().getFailTolerantStrategy());
             tolerantStrategy.doTolerant(null, e);
         }
 
+        // 如果开启了熔断机制，记录成功
+        if (RpcApplication.getRpcConfig().isOpenCircuitBreaker()) {
+            CircuitBreaker circuitBreaker = CircuitBreakerCenter.getCircuitBreaker(rpcRequest.getServiceName() + ":" + rpcRequest.getMethodName());
+            circuitBreaker.recordFailureCount();
+        }
         return result;
     }
 

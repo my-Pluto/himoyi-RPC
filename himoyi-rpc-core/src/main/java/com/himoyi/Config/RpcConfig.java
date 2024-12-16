@@ -82,4 +82,24 @@ public class RpcConfig {
      * 预热时间
      */
     private int GUAVA_PRE_HOT_TIME = 3;
+
+
+    /**
+     * 是否使用熔断器
+     */
+    private boolean openCircuitBreaker = false;
+    /**
+     * 失败阈值，当失败数量达到指定阈值，则开启熔断器
+     */
+    private int failureThreshold = 5;
+    /**
+     * 半开状态下，成功的比例
+     * 当成功数量达到指定比例，则关闭熔断器
+     */
+    private double halfOpenSuccessRate = 0.5;
+    /**
+     * 重置时间周期
+     * 在熔断器生效的情况下，如果经过了足够长的时间，则可以试探性进入半开状态
+     */
+    private long resetTimePeriod = 10000;
 }

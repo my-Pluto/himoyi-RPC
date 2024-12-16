@@ -17,25 +17,30 @@ public class RateLimitCenter {
 
     /**
      * 获取接口的限流器
+     *
      * @param name
      * @return
      */
     public static RateLimit getRateLimiter(String name) {
-        // 如果存在，直接返回
-        if (rateLimiters.containsKey(name)) {
-            return rateLimiters.get(name);
-        }
 
-        // todo 可以实现不同接口的限流速度不同，基于配置文件实现
-        // 如果不存在，则创建一个限流器，然后返回
-        RateLimit rateLimit = RateLimitFactory.getRateLimit(RpcApplication.getRpcConfig().getRATE_LIMIT_STRATEGY());
-        rateLimiters.put(name, rateLimit);
+
+        if (!rateLimiters.containsKey(name)) {
+            synchronized (RateLimitCenter.class) {
+                if (!rateLimiters.containsKey(name)) {
+                    // todo 可以实现不同接口的限流速度不同，基于配置文件实现
+                    // 如果不存在，则创建一个限流器，然后返回
+                    RateLimit rateLimit = RateLimitFactory.getRateLimit(RpcApplication.getRpcConfig().getRATE_LIMIT_STRATEGY());
+                    rateLimiters.put(name, rateLimit);
+                }
+            }
+        }
 
         return rateLimiters.get(name);
     }
 
     /**
      * 移除接口的限流器
+     *
      * @param name
      */
     public static void removeRateLimiter(String name) {
