@@ -10,6 +10,7 @@
         <option value="$PROJECT_DIR$/example-provider/pom.xml" />
         <option value="$PROJECT_DIR$/himoyi-rpc-easy/pom.xml" />
         <option value="$PROJECT_DIR$/himoyi-rpc-core/pom.xml" />
+        <option value="$PROJECT_DIR$/himoyi-rpc-spring-boot-starter/pom.xml" />
       </list>
     </option>
   </component>
