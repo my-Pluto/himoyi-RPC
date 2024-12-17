@@ -10,6 +10,7 @@ import com.himoyi.Config.RegistryConfig;
 import com.himoyi.constant.RpcConstant;
 import com.himoyi.model.ServiceMetaInfo;
 import io.etcd.jetcd.*;
+import io.etcd.jetcd.lease.LeaseGrantResponse;
 import io.etcd.jetcd.options.GetOption;
 import io.etcd.jetcd.options.PutOption;
 import io.etcd.jetcd.watch.WatchEvent;
@@ -17,6 +18,7 @@ import lombok.extern.slf4j.Slf4j;
 
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -31,6 +33,11 @@ public class EtcdRegistry implements Registry {
 
     // 本地已注册服务key的缓存
     private final Set<String> localRegistryNodeKeySet = new HashSet<>();
+
+    /**
+     * 租约以及对应的信息
+     */
+    private final HashMap<String, Long> leaseGrantResponseMap = new HashMap<>();
 
     // 元数据缓存对象
     private final RegistryServiceCache cache = new RegistryServiceCache();
@@ -58,7 +65,8 @@ public class EtcdRegistry implements Registry {
         Lease leaseClient = client.getLeaseClient();
         // 生成一个30s的租约
         long id = leaseClient.grant(30).get().getID();
-        ;
+
+
 
         // 构造服务信息
         String registerKey = RpcConstant.ETCD_ROOT_PATH + metaInfo.getServiceNodeKey();
@@ -75,6 +83,9 @@ public class EtcdRegistry implements Registry {
 
         // 添加到本地缓存
         localRegistryNodeKeySet.add(registerKey);
+
+        // 注册租约信息
+        leaseGrantResponseMap.put(registerKey, id);
 
         leaseClient.close();
 
@@ -200,17 +211,24 @@ public class EtcdRegistry implements Registry {
                         // 检查是否存活
                         List<KeyValue> kvs = kvClient.get(ByteSequence.from(registryNodeKey, StandardCharsets.UTF_8)).get().getKvs();
 
-                        // 如果节点已经失活，需要重启节点排除故障后才能重新注册
-                        if (ObjectUtil.isNull(kvs) || CollUtil.isEmpty(kvs)) {
-                            continue;
-                        }
-
                         // 构造元信息对象，重新注册以续约
                         KeyValue keyValue = kvs.get(0);
                         String value = keyValue.getValue().toString(StandardCharsets.UTF_8);
                         ServiceMetaInfo metaInfo = JSONUtil.toBean(value, ServiceMetaInfo.class);
+//
+//                        register(metaInfo);
+                        Long id = leaseGrantResponseMap.get(RpcConstant.ETCD_ROOT_PATH + metaInfo.getServiceNodeKey());
 
-                        register(metaInfo);
+                        // 如果节点已经失活，需要重启节点排除故障后才能重新注册
+                        if (ObjectUtil.isNull(kvs) || CollUtil.isEmpty(kvs)) {
+                            leaseGrantResponseMap.remove(RpcConstant.ETCD_ROOT_PATH + metaInfo.getServiceNodeKey());
+                            continue;
+                        }
+
+
+                        if (ObjectUtil.isNotNull(id)) {
+                            client.getLeaseClient().keepAliveOnce(id);
+                        }
                     } catch (Exception e) {
                         log.error("{} 服务续签失败", registryNodeKey);
                         throw new RuntimeException("续签失败！", e);

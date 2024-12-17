@@ -18,6 +18,8 @@ public class EasyConsumerExample {
             } else {
                 System.out.println("newUser is null");
             }
+
+            Thread.sleep(1000);
         }
     }
 }

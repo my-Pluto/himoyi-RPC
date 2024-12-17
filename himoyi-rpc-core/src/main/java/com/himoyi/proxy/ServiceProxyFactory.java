@@ -14,7 +14,7 @@ public class ServiceProxyFactory {
         return (T) Proxy.newProxyInstance(clazz.getClassLoader(), new Class[]{clazz}, new ServiceProxy());
     }
 
-    private static <T> T getMock(Class<T> clazz) {
+    public static <T> T getMock(Class<T> clazz) {
         return (T) Proxy.newProxyInstance(
                 clazz.getClassLoader(),
                 new Class[]{clazz},

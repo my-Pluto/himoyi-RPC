@@ -26,8 +26,9 @@ public class VertxTCPClient {
 
     /**
      * 执行请求动作
+     *
      * @param serviceMetaInfo 服务元信息
-     * @param rpcRequest 请求
+     * @param rpcRequest      请求
      * @return 执行结果
      * @throws ExecutionException
      * @throws InterruptedException
@@ -38,29 +39,33 @@ public class VertxTCPClient {
         // 用于异步获取调用结果
         CompletableFuture<RpcResponse> responseFuture = new CompletableFuture<>();
 
-        // 向服务器发起一个链接
-        netClient.connect(serviceMetaInfo.getServicePort(), serviceMetaInfo.getServiceHost(), result -> {
-            if (result.succeeded()) {
-                System.out.println("Connected to " + serviceMetaInfo.getServiceHost() + ":" + serviceMetaInfo.getServicePort());
+        try {
+            // 向服务器发起一个链接
+            netClient.connect(serviceMetaInfo.getServicePort(), serviceMetaInfo.getServiceHost(), result -> {
+                if (result.succeeded()) {
+                    System.out.println("Connected to " + serviceMetaInfo.getServiceHost() + ":" + serviceMetaInfo.getServicePort());
 
-                // 获取socket信息
-                NetSocket netSocket = result.result();
+                    // 获取socket信息
+                    NetSocket netSocket = result.result();
 
-                // 发起请求
-                sendRequest(rpcRequest, netSocket);
+                    // 发起请求
+                    sendRequest(rpcRequest, netSocket);
 
-                // 处理响应
-                getResponse(netSocket, responseFuture);
+                    // 处理响应
+                    getResponse(netSocket, responseFuture);
 
 
-            } else {
-                System.out.println("Failed to connect to " + serviceMetaInfo.getServiceHost() + ":" + serviceMetaInfo.getServicePort());
-            }
-        });
+                } else {
+                    System.out.println("Failed to connect to " + serviceMetaInfo.getServiceHost() + ":" + serviceMetaInfo.getServicePort());
+                }
+            });
 
-        netClient.close();
-        // 通过get阻塞等待，直到结果返回
-        return responseFuture.get().getData();
+            // 通过get阻塞等待，直到结果返回
+            return responseFuture.get().getData();
+        } finally {
+            netClient.close();
+        }
+
     }
 
 

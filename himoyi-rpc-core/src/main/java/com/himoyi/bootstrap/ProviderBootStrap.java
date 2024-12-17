@@ -3,6 +3,7 @@ package com.himoyi.bootstrap;
 import com.himoyi.Config.RegistryConfig;
 import com.himoyi.Config.RpcConfig;
 import com.himoyi.RpcApplication;
+import com.himoyi.constant.RpcConstant;
 import com.himoyi.model.ServiceMetaInfo;
 import com.himoyi.model.ServiceRegisterInfo;
 import com.himoyi.registry.LocalRegistry;
@@ -45,7 +46,7 @@ public class ProviderBootStrap {
             // 创建服务元数据
             ServiceMetaInfo metaInfo = new ServiceMetaInfo();
             metaInfo.setServiceName(serviceName);
-            metaInfo.setServiceVersion(rpcConfig.getVersion());
+            metaInfo.setServiceVersion(RpcConstant.DEFAULT_SERVICE_VERSION);
             metaInfo.setServiceHost(rpcConfig.getServerHost());
             metaInfo.setServicePort(rpcConfig.getServerPort());
 
