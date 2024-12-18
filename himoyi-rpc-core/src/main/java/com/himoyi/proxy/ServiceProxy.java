@@ -19,6 +19,7 @@ import com.himoyi.fault.retry.RetryStrategy;
 import com.himoyi.fault.retry.RetryStrategyFactory;
 import com.himoyi.fault.tolerant.TolerantStrategy;
 import com.himoyi.fault.tolerant.TolerantStrategyFactory;
+import com.himoyi.interceptor.InterceptorChain;
 import com.himoyi.loadbalancer.LoadBalancerFactory;
 import com.himoyi.model.RpcRequest;
 import com.himoyi.model.RpcResponse;
@@ -59,7 +60,6 @@ public class ServiceProxy implements InvocationHandler {
 
     @Override
     public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
-        Object result = null;
         // 构造请求
         RpcRequest rpcRequest = RpcRequest.builder()
                 .serviceName(method.getDeclaringClass().getName())
@@ -68,63 +68,75 @@ public class ServiceProxy implements InvocationHandler {
                 .parameters(args)
                 .build();
 
+        RpcResponse response = new RpcResponse();
+
         if (RpcApplication.getRpcConfig().isOpenCircuitBreaker()) {
             if (!CircuitBreakerCenter.getCircuitBreaker(rpcRequest.getServiceName() + ":" + rpcRequest.getMethodName()).allowRequest()) {
                 throw new RpcCircuitBreakerException("服务被熔断！");
             }
         }
 
-        try {
-            // 从注册中心获取服务信息
-            ServiceMetaInfo serviceMetaInfo = getServiceMetaInfo(method.getDeclaringClass().getName());
+        // 拦截器链
+        InterceptorChain consumerInterceptorChain = RpcApplication.getConsumerInterceptorChain();
 
-            RetryStrategy retryStrategy = RetryStrategyFactory.getRetryStrategy(RpcApplication.getRpcConfig().getRetryStrategy());
+        // 拦截器前置处理器
+        if (consumerInterceptorChain.applyPreHandle(rpcRequest, response)) {
 
-            /*
-             * Callable是一个函数式接口.
-             * ()：表示这个lambda表达式不接受任何参数，匹配Callable接口的call()方法签名。
-             * ->：lambda表达式的箭头操作符，左边是参数列表（这里为空），右边是lambda表达式的实现。
-             * (RpcResponse) VertxTCPClient.doRequest(serviceMetaInfo, rpcRequest)：这是lambda表达式的实现部分，它调用了VertxTCPClient.doRequest方法，并将结果转换为RpcResponse类型
-             * Java编译器可以根据上下文推断出lambda表达式应该实现的接口类型。在这里，retryStrategy.doRetry方法期望一个Callable<RpcResponse>，因此编译器知道lambda表达式应该实现Callable接口的call()方法
-             *
-             *
-             * 展开写的话：
-             * RpcResponse response = retryStrategy.doRetry(new Callable<RpcResponse>() {
-             *     @Override
-             *     public RpcResponse call() throws Exception {
-             *         // 发送请求，返回结果
-             *         return (RpcResponse) VertxTCPClient.doRequest(serviceMetaInfo, rpcRequest);
-             *     }
-             * });
-             */
-            result = retryStrategy.doRetry(() -> VertxTCPClient.doRequest(serviceMetaInfo, rpcRequest));
+            try {
+                // 从注册中心获取服务信息
+                ServiceMetaInfo serviceMetaInfo = getServiceMetaInfo(method.getDeclaringClass().getName());
 
-            RpcResponse result1 = (RpcResponse) result;
-            if (result1.getCode() == 500000) {
-                throw new RpcResponseException(result1.getMessage());
-            }
+                RetryStrategy retryStrategy = RetryStrategyFactory.getRetryStrategy(RpcApplication.getRpcConfig().getRetryStrategy());
 
-        } catch (Exception e) {
+                /*
+                 * Callable是一个函数式接口.
+                 * ()：表示这个lambda表达式不接受任何参数，匹配Callable接口的call()方法签名。
+                 * ->：lambda表达式的箭头操作符，左边是参数列表（这里为空），右边是lambda表达式的实现。
+                 * (RpcResponse) VertxTCPClient.doRequest(serviceMetaInfo, rpcRequest)：这是lambda表达式的实现部分，它调用了VertxTCPClient.doRequest方法，并将结果转换为RpcResponse类型
+                 * Java编译器可以根据上下文推断出lambda表达式应该实现的接口类型。在这里，retryStrategy.doRetry方法期望一个Callable<RpcResponse>，因此编译器知道lambda表达式应该实现Callable接口的call()方法
+                 *
+                 *
+                 * 展开写的话：
+                 * RpcResponse response = retryStrategy.doRetry(new Callable<RpcResponse>() {
+                 *     @Override
+                 *     public RpcResponse call() throws Exception {
+                 *         // 发送请求，返回结果
+                 *         return (RpcResponse) VertxTCPClient.doRequest(serviceMetaInfo, rpcRequest);
+                 *     }
+                 * });
+                 */
+                response = (RpcResponse) retryStrategy.doRetry(() -> VertxTCPClient.doRequest(serviceMetaInfo, rpcRequest));
+
+                if (response.getCode() == 500000) {
+                    throw new RpcResponseException(response.getMessage());
+                }
+
+            } catch (Exception e) {
 //            log.error("调用失败！");
 //            throw new RuntimeException("调用失败！", e);
 
-            // 如果开启了熔断机制，记录失败
-            if (RpcApplication.getRpcConfig().isOpenCircuitBreaker()) {
-                CircuitBreaker circuitBreaker = CircuitBreakerCenter.getCircuitBreaker(rpcRequest.getServiceName() + ":" + rpcRequest.getMethodName());
-                circuitBreaker.recordFailureCount();
+                // 如果开启了熔断机制，记录失败
+                if (RpcApplication.getRpcConfig().isOpenCircuitBreaker()) {
+                    CircuitBreaker circuitBreaker = CircuitBreakerCenter.getCircuitBreaker(rpcRequest.getServiceName() + ":" + rpcRequest.getMethodName());
+                    circuitBreaker.recordFailureCount();
+                }
+
+                // 进行容错处理
+                TolerantStrategy tolerantStrategy = TolerantStrategyFactory.getTolerantStrategy(RpcApplication.getRpcConfig().getFailTolerantStrategy());
+                tolerantStrategy.doTolerant(null, e);
             }
 
-            // 进行容错处理
-            TolerantStrategy tolerantStrategy = TolerantStrategyFactory.getTolerantStrategy(RpcApplication.getRpcConfig().getFailTolerantStrategy());
-            tolerantStrategy.doTolerant(null, e);
         }
+
+        // 后置处理器
+        consumerInterceptorChain.applyPostHandle(rpcRequest, response);
 
         // 如果开启了熔断机制，记录成功
         if (RpcApplication.getRpcConfig().isOpenCircuitBreaker()) {
             CircuitBreaker circuitBreaker = CircuitBreakerCenter.getCircuitBreaker(rpcRequest.getServiceName() + ":" + rpcRequest.getMethodName());
             circuitBreaker.recordFailureCount();
         }
-        return result;
+        return response;
     }
 
     /**

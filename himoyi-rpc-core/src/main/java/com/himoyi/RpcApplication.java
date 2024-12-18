@@ -4,6 +4,7 @@ import cn.hutool.core.util.ObjectUtil;
 import com.himoyi.Config.RegistryConfig;
 import com.himoyi.Config.RpcConfig;
 import com.himoyi.constant.RpcConstant;
+import com.himoyi.interceptor.InterceptorChain;
 import com.himoyi.registry.Registry;
 import com.himoyi.registry.RegistryFactory;
 import com.himoyi.utils.ConfigUtils;
@@ -17,6 +18,10 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class RpcApplication {
     private static volatile RpcConfig rpcConfig;
+
+    private static final InterceptorChain PROVIDER_HANDLER_INTERCEPTOR_CHAIN = null;
+
+    private static final InterceptorChain CONSUMER_HANDLER_INTERCEPTOR_CHAIN = null;
 
     /**
      * 初始化配置文件，使用自定义配置
@@ -73,6 +78,24 @@ public class RpcApplication {
         }
 
         return rpcConfig;
+    }
+
+    /**
+     * 获取服务提供者过滤器链
+     *
+     * @return
+     */
+    public static InterceptorChain getProviderInterceptorChain() {
+        return PROVIDER_HANDLER_INTERCEPTOR_CHAIN;
+    }
+
+    /**
+     * 获取消费者过滤器链
+     *
+     * @return
+     */
+    public static InterceptorChain getConsumerInterceptorChain() {
+        return CONSUMER_HANDLER_INTERCEPTOR_CHAIN;
     }
 
 }

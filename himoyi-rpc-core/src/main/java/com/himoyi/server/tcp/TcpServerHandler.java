@@ -1,8 +1,10 @@
 package com.himoyi.server.tcp;
 
+import com.himoyi.RpcApplication;
 import com.himoyi.exception.RpcHasRateLimitException;
 import com.himoyi.exception.RpcInvokeMethodException;
 import com.himoyi.exception.Serializer.RpcSerializerFailException;
+import com.himoyi.interceptor.InterceptorChain;
 import com.himoyi.model.RpcRequest;
 import com.himoyi.model.RpcResponse;
 import com.himoyi.protocol.ProtocolMessage;
@@ -49,12 +51,20 @@ public class TcpServerHandler implements Handler<NetSocket> {
             }
 
             RpcResponse response = RpcResponse.fail();
-            try {
-                // 执行请求的方法
-                response = invokeMethod(rpcRequest);
-            } catch (RpcInvokeMethodException ignored) {
+
+            // 服务提供者拦截器链
+            InterceptorChain providerInterceptorChain = RpcApplication.getProviderInterceptorChain();
+            // 前置处理器
+            if (providerInterceptorChain.applyPreHandle(rpcRequest, response)) {
+                try {
+                    // 执行请求的方法
+                    response = invokeMethod(rpcRequest);
+                } catch (RpcInvokeMethodException ignored) {
+                }
             }
 
+            // 后置处理器
+            providerInterceptorChain.applyPostHandle(rpcRequest, response);
             // 构造返回消息
             ProtocolMessage<RpcResponse> responseMessage = createResponse(protocolMessage, response);
 
