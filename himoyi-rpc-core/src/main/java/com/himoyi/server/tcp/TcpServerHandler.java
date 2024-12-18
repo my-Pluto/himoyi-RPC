@@ -1,5 +1,8 @@
 package com.himoyi.server.tcp;
 
+import com.himoyi.exception.RpcHasRateLimitException;
+import com.himoyi.exception.RpcInvokeMethodException;
+import com.himoyi.exception.Serializer.RpcSerializerFailException;
 import com.himoyi.model.RpcRequest;
 import com.himoyi.model.RpcResponse;
 import com.himoyi.protocol.ProtocolMessage;
@@ -33,7 +36,7 @@ public class TcpServerHandler implements Handler<NetSocket> {
                 protocolMessage = (ProtocolMessage<RpcRequest>) ProtocolMessageDecoder.decode(buffer);
             } catch (IOException e) {
                 log.error("消息解码错误！");
-                throw new RuntimeException("消息解码错误！");
+                throw new RpcSerializerFailException("消息解码错误！");
             }
 
             RpcRequest rpcRequest = protocolMessage.getData();
@@ -42,11 +45,15 @@ public class TcpServerHandler implements Handler<NetSocket> {
             boolean token = RateLimitCenter.getRateLimiter(rpcRequest.getServiceName() + ":" + rpcRequest.getMethodName()).getToken();
             if (!token) {
                 log.info("获取Token失败，调用过程被限流！");
-                throw new RuntimeException("获取Token失败，调用过程被限流！");
+                throw new RpcHasRateLimitException("获取Token失败，调用过程被限流！");
             }
 
-            // 执行请求的方法
-            RpcResponse response = invokeMethod(rpcRequest);
+            RpcResponse response = RpcResponse.fail();
+            try {
+                // 执行请求的方法
+                response = invokeMethod(rpcRequest);
+            } catch (RpcInvokeMethodException ignored) {
+            }
 
             // 构造返回消息
             ProtocolMessage<RpcResponse> responseMessage = createResponse(protocolMessage, response);
@@ -58,7 +65,7 @@ public class TcpServerHandler implements Handler<NetSocket> {
                 netSocket.write(encode_ProtocolResponseMessage);
             } catch (IOException e) {
                 log.error("编码错误！");
-                throw new RuntimeException("编码错误", e);
+                throw new RpcSerializerFailException("编码错误");
             }
         });
 
@@ -73,7 +80,7 @@ public class TcpServerHandler implements Handler<NetSocket> {
      * @param request 请求消息
      * @return 响应结果
      */
-    private RpcResponse invokeMethod(RpcRequest request) {
+    private RpcResponse invokeMethod(RpcRequest request) throws RpcInvokeMethodException {
         try {
             Class<?> service = LocalRegistry.get(request.getServiceName());
             Method method = service.getMethod(request.getMethodName(), request.getParameterTypes());
@@ -85,7 +92,7 @@ public class TcpServerHandler implements Handler<NetSocket> {
             response.setMessage("SUCCESS");
             return response;
         } catch (Exception e) {
-            throw new RuntimeException(e);
+            throw new RpcInvokeMethodException("调用执行错误");
         }
     }
 

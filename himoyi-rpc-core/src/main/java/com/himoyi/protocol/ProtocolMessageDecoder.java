@@ -1,6 +1,9 @@
 package com.himoyi.protocol;
 
 import cn.hutool.core.util.ObjectUtil;
+import com.himoyi.exception.Protocol.RpcProtocolTypeException;
+import com.himoyi.exception.Serializer.RpcNotSerializerException;
+import com.himoyi.exception.Protocol.RpcProtocolMagicException;
 import com.himoyi.model.RpcRequest;
 import com.himoyi.model.RpcResponse;
 import com.himoyi.serializer.Serializer;
@@ -25,7 +28,7 @@ public class ProtocolMessageDecoder {
 
         if (magic != ProtocolConstant.PROTOCOL_MAGIC) {
             log.error("消息非法！");
-            throw new RuntimeException("消息非法！");
+            throw new RpcProtocolMagicException("消息非法！");
         }
 
         // 解析消息头
@@ -45,14 +48,14 @@ public class ProtocolMessageDecoder {
         Serializer serializer = SerializerFactory.getInstance(ProtocolMessageSerializerEnum.getEnumByKey(header.getSerializer()).getName());
         if (ObjectUtil.isNull(serializer)) {
             log.error("序列化器不存在！");
-            throw new RuntimeException("序列化器不存在");
+            throw new RpcNotSerializerException("序列化器不存在");
         }
 
         // 获取消息类型信息
         ProtocolMessageTypeEnum messageTypeEnum = ProtocolMessageTypeEnum.getEnumByKey(header.getType());
         if (ObjectUtil.isNull(messageTypeEnum)) {
             log.error("消息类型错误");
-            throw new RuntimeException("序列化消息类型错误！");
+            throw new RpcProtocolTypeException("序列化消息类型错误！");
         }
 
         // 反序列化并返回对应消息信息
@@ -67,7 +70,7 @@ public class ProtocolMessageDecoder {
             }
             default -> {
                 log.error("未知消息类型！");
-                throw new RuntimeException("未知消息类型！");
+                throw new RpcProtocolTypeException("未知消息类型！");
             }
         };
 

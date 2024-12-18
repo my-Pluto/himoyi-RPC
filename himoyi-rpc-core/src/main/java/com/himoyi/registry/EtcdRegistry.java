@@ -8,6 +8,9 @@ import cn.hutool.cron.task.Task;
 import cn.hutool.json.JSONUtil;
 import com.himoyi.Config.RegistryConfig;
 import com.himoyi.constant.RpcConstant;
+import com.himoyi.exception.registry.RpcHeartBeatException;
+import com.himoyi.exception.registry.RpcOfflineException;
+import com.himoyi.exception.registry.RpcServiceDiscoveryException;
 import com.himoyi.model.ServiceMetaInfo;
 import io.etcd.jetcd.*;
 import io.etcd.jetcd.lease.LeaseGrantResponse;
@@ -18,10 +21,8 @@ import lombok.extern.slf4j.Slf4j;
 
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -31,13 +32,15 @@ public class EtcdRegistry implements Registry {
 
     private KV kvClient;
 
+    private Lease leaseClient;
+
     // 本地已注册服务key的缓存
     private final Set<String> localRegistryNodeKeySet = new HashSet<>();
 
     /**
      * 租约以及对应的信息
      */
-    private final HashMap<String, Long> leaseGrantResponseMap = new HashMap<>();
+    private final Map<String, Long> leaseGrantResponseMap = new ConcurrentHashMap<>();
 
     // 元数据缓存对象
     private final RegistryServiceCache cache = new RegistryServiceCache();
@@ -53,6 +56,7 @@ public class EtcdRegistry implements Registry {
                 .connectTimeout(Duration.ofMillis(registryConfig.getTimeout()))
                 .build();
         kvClient = client.getKVClient();
+        leaseClient = client.getLeaseClient();
 
         // 开启心跳检测
         heartbeat();
@@ -61,12 +65,8 @@ public class EtcdRegistry implements Registry {
     @Override
     public void register(ServiceMetaInfo metaInfo) throws Exception {
 
-        // 获取租约客户端
-        Lease leaseClient = client.getLeaseClient();
         // 生成一个30s的租约
         long id = leaseClient.grant(30).get().getID();
-
-
 
         // 构造服务信息
         String registerKey = RpcConstant.ETCD_ROOT_PATH + metaInfo.getServiceNodeKey();
@@ -87,8 +87,6 @@ public class EtcdRegistry implements Registry {
         // 注册租约信息
         leaseGrantResponseMap.put(registerKey, id);
 
-        leaseClient.close();
-
         log.info("register service: {} success", registerKey);
     }
 
@@ -103,6 +101,11 @@ public class EtcdRegistry implements Registry {
 
         // 从本地缓存中删除
         localRegistryNodeKeySet.remove(unregisterKey);
+        // 撤销租约
+        leaseClient.revoke(leaseGrantResponseMap.get(unregisterKey)).get();
+        // 删除本地租约缓存
+        leaseGrantResponseMap.remove(unregisterKey);
+
 
         log.info("unregister service: {} success", metaInfo.getServiceNodeKey());
     }
@@ -116,7 +119,7 @@ public class EtcdRegistry implements Registry {
                 kvClient.delete(ByteSequence.from(key, StandardCharsets.UTF_8)).get();
             } catch (Exception e) {
                 log.error("{} 节点下线失败", key, e);
-                throw new RuntimeException("节点下线失败！", e);
+                throw new RpcOfflineException("节点下线失败！");
             }
         }
 
@@ -169,7 +172,7 @@ public class EtcdRegistry implements Registry {
             return list;
         } catch (Exception e) {
             log.error("获取服务列表失败, 前缀为 {}", prefix);
-            throw new RuntimeException("获取服务列表失败", e);
+            throw new RpcServiceDiscoveryException("获取服务列表失败");
         }
     }
 
@@ -231,7 +234,7 @@ public class EtcdRegistry implements Registry {
                         }
                     } catch (Exception e) {
                         log.error("{} 服务续签失败", registryNodeKey);
-                        throw new RuntimeException("续签失败！", e);
+                        throw new RpcHeartBeatException("续签失败！");
                     }
                 }
             }

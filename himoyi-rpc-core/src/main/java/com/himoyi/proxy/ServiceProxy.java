@@ -11,6 +11,10 @@ import com.himoyi.RpcApplication;
 import com.himoyi.circuitBreaker.CircuitBreaker;
 import com.himoyi.circuitBreaker.CircuitBreakerCenter;
 import com.himoyi.constant.RpcConstant;
+import com.himoyi.exception.RpcCircuitBreakerException;
+import com.himoyi.exception.RpcException;
+import com.himoyi.exception.RpcResponseException;
+import com.himoyi.exception.RpcServiceAddressException;
 import com.himoyi.fault.retry.RetryStrategy;
 import com.himoyi.fault.retry.RetryStrategyFactory;
 import com.himoyi.fault.tolerant.TolerantStrategy;
@@ -66,7 +70,7 @@ public class ServiceProxy implements InvocationHandler {
 
         if (RpcApplication.getRpcConfig().isOpenCircuitBreaker()) {
             if (!CircuitBreakerCenter.getCircuitBreaker(rpcRequest.getServiceName() + ":" + rpcRequest.getMethodName()).allowRequest()) {
-                throw new RuntimeException("服务被熔断！");
+                throw new RpcCircuitBreakerException("服务被熔断！");
             }
         }
 
@@ -95,6 +99,10 @@ public class ServiceProxy implements InvocationHandler {
              */
             result = retryStrategy.doRetry(() -> VertxTCPClient.doRequest(serviceMetaInfo, rpcRequest));
 
+            RpcResponse result1 = (RpcResponse) result;
+            if (result1.getCode() == 500000) {
+                throw new RpcResponseException(result1.getMessage());
+            }
 
         } catch (Exception e) {
 //            log.error("调用失败！");
@@ -132,7 +140,7 @@ public class ServiceProxy implements InvocationHandler {
 
         if (CollUtil.isEmpty(serviceMetaInfos)) {
             log.error("暂无服务地址");
-            throw new RuntimeException("暂无服务地址");
+            throw new RpcServiceAddressException("暂无服务地址");
         }
 
         // 构造参数map，使用负载均衡器选择一个服务地址

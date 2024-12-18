@@ -1,5 +1,7 @@
 package com.himoyi.serializer;
 
+import com.himoyi.exception.Serializer.RpcSerializerFailException;
+
 import java.io.*;
 
 /**
@@ -49,7 +51,7 @@ public class JdkSerializer implements Serializer {
             // 读取对象并进行类型转换
             return (T) objectInputStream.readObject();
         } catch (ClassNotFoundException e) {
-            throw new RuntimeException(e);
+            throw new RpcSerializerFailException("消息反序列化失败！");
         } finally {
             objectInputStream.close();
         }

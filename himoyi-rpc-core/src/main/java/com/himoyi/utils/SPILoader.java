@@ -3,6 +3,9 @@ package com.himoyi.utils;
 import cn.hutool.core.io.resource.ResourceUtil;
 import cn.hutool.core.util.ObjectUtil;
 import com.himoyi.constant.RpcConstant;
+import com.himoyi.exception.spi.RpcSPIFailClassException;
+import com.himoyi.exception.spi.RpcSPINoInterfaceException;
+import com.himoyi.exception.spi.RpcSPINoKeyException;
 import com.himoyi.serializer.Serializer;
 import lombok.extern.slf4j.Slf4j;
 
@@ -111,12 +114,12 @@ public class SPILoader {
 
         // 如果不存在该接口，证明它未实现SPI
         if (ObjectUtil.isNull(keyClassMap)) {
-            throw new RuntimeException(String.format("SPILoader 未加载 %s 类型", className));
+            throw new RpcSPINoInterfaceException(String.format("SPILoader 未加载 %s 类型", className));
         }
 
         // 如果map中不存在key，证明该实现类不存在
         if (!keyClassMap.containsKey(key)) {
-            throw new RuntimeException(String.format("SpiLoader 的 %s 不存在 key=%s 的类型", className, key));
+            throw new RpcSPINoKeyException(String.format("SpiLoader 的 %s 不存在 key=%s 的类型", className, key));
         }
 
         // 获取实现类的class信息
@@ -128,7 +131,7 @@ public class SPILoader {
             try {
                 hasLoaderMap.put(name, aClass.newInstance());
             } catch (Exception e) {
-                throw new RuntimeException(String.format("%s 类实例化失败", name), e);
+                throw new RpcSPIFailClassException(String.format("%s 类实例化失败", name));
             }
         }
 
@@ -150,12 +153,12 @@ public class SPILoader {
 
         // 如果不存在该接口，证明它未实现SPI
         if (ObjectUtil.isNull(keyClassMap)) {
-            throw new RuntimeException(String.format("SPILoader 未加载 %s 类型", className));
+            throw new RpcSPINoInterfaceException(String.format("SPILoader 未加载 %s 类型", className));
         }
 
         // 如果map中不存在key，证明该实现类不存在
         if (!keyClassMap.containsKey(key)) {
-            throw new RuntimeException(String.format("SpiLoader 的 %s 不存在 key=%s 的类型", className, key));
+            throw new RpcSPINoKeyException(String.format("SpiLoader 的 %s 不存在 key=%s 的类型", className, key));
         }
 
         // 获取实现类的class信息
