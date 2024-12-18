@@ -7,6 +7,7 @@ import cn.hutool.cron.CronUtil;
 import cn.hutool.cron.task.Task;
 import cn.hutool.json.JSONUtil;
 import com.himoyi.Config.RegistryConfig;
+import com.himoyi.RpcApplication;
 import com.himoyi.constant.RpcConstant;
 import com.himoyi.exception.registry.RpcHeartBeatException;
 import com.himoyi.exception.registry.RpcOfflineException;
@@ -48,6 +49,11 @@ public class EtcdRegistry implements Registry {
     // 已经被监听的服务
     private final Set<String> watchingServiceKeySet = new ConcurrentHashSet<>();
 
+    /**
+     * 缓存每个服务的token
+     */
+    private final Map<String, String> tokenMap = new ConcurrentHashMap<>();
+
 
     @Override
     public void init(RegistryConfig registryConfig) {
@@ -87,6 +93,11 @@ public class EtcdRegistry implements Registry {
         // 注册租约信息
         leaseGrantResponseMap.put(registerKey, id);
 
+        // 缓存本地token信息
+        if (RpcApplication.getRpcConfig().isTokenAuth()) {
+            tokenMap.put(metaInfo.getServiceName(), metaInfo.getToken());
+        }
+
         log.info("register service: {} success", registerKey);
     }
 
@@ -105,6 +116,10 @@ public class EtcdRegistry implements Registry {
         leaseClient.revoke(leaseGrantResponseMap.get(unregisterKey)).get();
         // 删除本地租约缓存
         leaseGrantResponseMap.remove(unregisterKey);
+
+        if (RpcApplication.getRpcConfig().isTokenAuth()) {
+            tokenMap.remove(metaInfo.getServiceName());
+        }
 
 
         log.info("unregister service: {} success", metaInfo.getServiceNodeKey());
@@ -243,5 +258,19 @@ public class EtcdRegistry implements Registry {
         // 开启秒级定时任务，第一位为秒
         CronUtil.setMatchSecond(true);
         CronUtil.start();
+    }
+
+    /**
+     * 获取token
+     *
+     * @param key
+     * @return
+     */
+    @Override
+    public String getToken(String key) {
+        if (RpcApplication.getRpcConfig().isTokenAuth()) {
+            return tokenMap.get(key);
+        }
+        return "";
     }
 }

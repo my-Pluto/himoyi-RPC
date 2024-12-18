@@ -5,6 +5,7 @@ import com.himoyi.Config.RegistryConfig;
 import com.himoyi.Config.RpcConfig;
 import com.himoyi.constant.RpcConstant;
 import com.himoyi.interceptor.InterceptorChain;
+import com.himoyi.interceptor.provider.ProviderHandlerInterceptor;
 import com.himoyi.registry.Registry;
 import com.himoyi.registry.RegistryFactory;
 import com.himoyi.utils.ConfigUtils;
@@ -19,9 +20,9 @@ import lombok.extern.slf4j.Slf4j;
 public class RpcApplication {
     private static volatile RpcConfig rpcConfig;
 
-    private static final InterceptorChain PROVIDER_HANDLER_INTERCEPTOR_CHAIN = null;
+    private static InterceptorChain PROVIDER_HANDLER_INTERCEPTOR_CHAIN;
 
-    private static final InterceptorChain CONSUMER_HANDLER_INTERCEPTOR_CHAIN = null;
+    private static InterceptorChain CONSUMER_HANDLER_INTERCEPTOR_CHAIN;
 
     /**
      * 初始化配置文件，使用自定义配置
@@ -81,8 +82,16 @@ public class RpcApplication {
     }
 
     /**
-     * 获取服务提供者过滤器链
+     * 设置服务提供者过滤器链
      *
+     * @return
+     */
+    public static void setProviderInterceptorChain(InterceptorChain providerInterceptorChain) {
+        PROVIDER_HANDLER_INTERCEPTOR_CHAIN = providerInterceptorChain;
+    }
+
+    /**
+     * 返回服务提供者过滤器链
      * @return
      */
     public static InterceptorChain getProviderInterceptorChain() {
@@ -96,6 +105,14 @@ public class RpcApplication {
      */
     public static InterceptorChain getConsumerInterceptorChain() {
         return CONSUMER_HANDLER_INTERCEPTOR_CHAIN;
+    }
+
+    /**
+     * 设置消费者过滤器链
+     * @param consumerInterceptorChain
+     */
+    public static void setConsumerInterceptorChain(InterceptorChain consumerInterceptorChain) {
+        CONSUMER_HANDLER_INTERCEPTOR_CHAIN = consumerInterceptorChain;
     }
 
 }

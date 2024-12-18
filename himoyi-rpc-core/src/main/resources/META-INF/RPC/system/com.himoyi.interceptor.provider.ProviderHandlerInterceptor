@@ -1,0 +1,2 @@
+ProviderResponseHandlerInterceptor=com.himoyi.interceptor.provider.ProviderResponseHandlerInterceptor
+ProviderTokenHandlerInterceptor=com.himoyi.interceptor.provider.ProviderTokenHandlerInterceptor

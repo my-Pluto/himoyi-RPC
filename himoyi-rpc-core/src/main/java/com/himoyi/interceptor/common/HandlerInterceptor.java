@@ -1,4 +1,4 @@
-package com.himoyi.interceptor;
+package com.himoyi.interceptor.common;
 
 import com.himoyi.model.RpcRequest;
 import com.himoyi.model.RpcResponse;

@@ -168,4 +168,13 @@ public class SPILoader {
             throw new RuntimeException(e);
         }
     }
+
+    /**
+     * 获取加载的所有类对象
+     * @param className
+     * @return
+     */
+    public static Map<String, Class<?>> getClassMap(String className) {
+        return loaderMap.get(className);
+    }
 }

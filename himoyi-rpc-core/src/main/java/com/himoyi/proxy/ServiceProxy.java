@@ -105,6 +105,10 @@ public class ServiceProxy implements InvocationHandler {
                  *     }
                  * });
                  */
+                // 附加token
+                if (RpcApplication.getRpcConfig().isTokenAuth()) {
+                    rpcRequest.setToken(serviceMetaInfo.getToken());
+                }
                 response = (RpcResponse) retryStrategy.doRetry(() -> VertxTCPClient.doRequest(serviceMetaInfo, rpcRequest));
 
                 if (response.getCode() == 500000) {
@@ -136,7 +140,7 @@ public class ServiceProxy implements InvocationHandler {
             CircuitBreaker circuitBreaker = CircuitBreakerCenter.getCircuitBreaker(rpcRequest.getServiceName() + ":" + rpcRequest.getMethodName());
             circuitBreaker.recordFailureCount();
         }
-        return response;
+        return response.getData();
     }
 
     /**

@@ -34,6 +34,11 @@ public class ServiceMetaInfo implements Serializable {
     private Integer servicePort;
 
     /**
+     * 服务的token配置
+     */
+    private String token;
+
+    /**
      * 服务分组（未实现）
      */
     private String serviceGroup;

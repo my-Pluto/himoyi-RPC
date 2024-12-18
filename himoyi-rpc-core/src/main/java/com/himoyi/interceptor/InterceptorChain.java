@@ -1,9 +1,9 @@
 package com.himoyi.interceptor;
 
 import cn.hutool.core.util.ObjectUtil;
+import com.himoyi.interceptor.common.HandlerInterceptor;
 import com.himoyi.model.RpcRequest;
 import com.himoyi.model.RpcResponse;
-import com.himoyi.protocol.ProtocolMessage;
 
 import java.util.ArrayList;
 import java.util.List;

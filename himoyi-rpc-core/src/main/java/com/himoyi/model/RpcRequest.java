@@ -42,4 +42,9 @@ public class RpcRequest implements Serializable {
      * 参数列表
      */
     private Object[] parameters;
+
+    /**
+     * token配置
+     */
+    private String token;
 }

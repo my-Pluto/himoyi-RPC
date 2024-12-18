@@ -102,4 +102,9 @@ public class RpcConfig {
      * 在熔断器生效的情况下，如果经过了足够长的时间，则可以试探性进入半开状态
      */
     private long resetTimePeriod = 10000;
+
+    /**
+     * 是否开启鉴权机制
+     */
+    private boolean tokenAuth = true;
 }
